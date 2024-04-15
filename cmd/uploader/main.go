@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -43,6 +44,21 @@ func main() {
 	}
 
 	defer dir.Close()
+
+	for {
+		files, err := dir.ReadDir(1)
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			fmt.Printf("Error reading directory: %s\n", err)
+			continue
+		}
+
+		uploadFile(files[0].Name())
+	}
 }
 
 func uploadFile(filename string) {
