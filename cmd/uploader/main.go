@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -17,6 +18,13 @@ var (
 )
 
 func init() {
+	godotenv.Load()
+
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		panic("Error loading .env file")
+	}
+
 	sess, err := session.NewSession(
 		&aws.Config{
 			Region: aws.String("us-east-1"),
@@ -37,7 +45,7 @@ func init() {
 }
 
 func main() {
-	dir, err := os.Open("./tmp")
+	dir, err := os.Open("../../tmp")
 
 	if err != nil {
 		panic(err)
@@ -62,8 +70,8 @@ func main() {
 }
 
 func uploadFile(filename string) {
-	completeFileName := fmt.Sprintf("./tmp/%s", filename)
-	fmt.Printf("Uploading file %s to bucket %s \n", completeFileName, s3Bucket)
+	completeFileName := fmt.Sprintf("../../tmp/%s", filename)
+	fmt.Printf("Uploading file %s to bucket %s\n", completeFileName, s3Bucket)
 
 	f, err := os.Open(completeFileName)
 
@@ -85,6 +93,6 @@ func uploadFile(filename string) {
 		return
 	}
 
-	fmt.Printf("File %s uploaded successfully \n", completeFileName)
+	fmt.Printf("File %s uploaded successfully\n", completeFileName)
 
 }
