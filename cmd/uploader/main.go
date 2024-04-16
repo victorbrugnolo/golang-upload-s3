@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -15,6 +16,7 @@ import (
 var (
 	s3Client *s3.S3
 	s3Bucket string
+	wg       sync.WaitGroup
 )
 
 func init() {
@@ -53,6 +55,8 @@ func main() {
 
 	defer dir.Close()
 
+	uploadControl := make(chan struct{}, 100)
+
 	for {
 		files, err := dir.ReadDir(1)
 
@@ -65,11 +69,17 @@ func main() {
 			continue
 		}
 
-		uploadFile(files[0].Name())
+		wg.Add(1)
+		uploadControl <- struct{}{}
+		go uploadFile(files[0].Name(), uploadControl)
 	}
+
+	wg.Wait()
 }
 
-func uploadFile(filename string) {
+func uploadFile(filename string, uploadControl <-chan struct{}) {
+	defer wg.Done()
+
 	completeFileName := fmt.Sprintf("../../tmp/%s", filename)
 	fmt.Printf("Uploading file %s to bucket %s\n", completeFileName, s3Bucket)
 
@@ -77,6 +87,7 @@ func uploadFile(filename string) {
 
 	if err != nil {
 		fmt.Printf("Error opening file %s\n", completeFileName)
+		<-uploadControl
 		return
 	}
 
@@ -90,9 +101,10 @@ func uploadFile(filename string) {
 
 	if err != nil {
 		fmt.Printf("Error uploading file %s\n", completeFileName)
+		<-uploadControl
 		return
 	}
 
 	fmt.Printf("File %s uploaded successfully\n", completeFileName)
-
+	<-uploadControl
 }
